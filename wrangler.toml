@@ -1,0 +1,21 @@
+# Cloudflare Workers configuration for BullTeam PWA
+name = "bullteam-pwa"
+main = "worker.js"
+compatibility_date = "2024-01-20"
+
+# Static site configuration
+[site]
+bucket = "."
+
+# Environment variables (if needed)
+[vars]
+ENVIRONMENT = "production"
+
+# Routes configuration
+[[routes]]
+pattern = "bull-team-pwa.vercel.app/*"
+zone_name = "vercel.app"
+
+# Build configuration
+[build]
+command = "echo 'No build needed for static site'"
