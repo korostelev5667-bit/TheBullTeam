@@ -4,7 +4,10 @@
     tableOrders: 'waiter.tableOrders',
     tables: 'waiter.tables',
     tableMode: 'waiter.tableMode',
-    tableNames: 'waiter.tableNames'
+    tableNames: 'waiter.tableNames',
+    auth: 'waiter.auth',
+    user: 'waiter.user',
+    rememberMe: 'waiter.rememberMe'
   };
 
 
@@ -23,18 +26,56 @@
   const root = document.getElementById('app');
   const installBtn = document.getElementById('btn-install');
   let deferredPrompt = null;
-  let currentPage = 'tables';
+  let currentPage = 'auth';
+  let isAuthenticated = false;
+  let currentUser = null;
 
   function loadState() {
     try { tableOrders = JSON.parse(localStorage.getItem(STORAGE_KEYS.tableOrders) || '{}'); } catch { tableOrders = {}; }
     try { activeTables = JSON.parse(localStorage.getItem(STORAGE_KEYS.tables) || '[]'); } catch { activeTables = []; }
     try { tableMode = localStorage.getItem(STORAGE_KEYS.tableMode) || 'todo'; } catch { tableMode = 'todo'; }
     try { tableNames = JSON.parse(localStorage.getItem(STORAGE_KEYS.tableNames) || '{}'); } catch { tableNames = {}; }
+    
+    // Load auth state
+    try { 
+      isAuthenticated = localStorage.getItem(STORAGE_KEYS.auth) === 'true'; 
+      if (isAuthenticated) {
+        currentUser = JSON.parse(localStorage.getItem(STORAGE_KEYS.user) || 'null');
+        currentPage = 'tables'; // Go to main app if authenticated
+      }
+    } catch { 
+      isAuthenticated = false; 
+      currentUser = null;
+    }
   }
   function saveTableOrders() { localStorage.setItem(STORAGE_KEYS.tableOrders, JSON.stringify(tableOrders)); }
   function saveTables() { localStorage.setItem(STORAGE_KEYS.tables, JSON.stringify(activeTables)); }
   function saveTableMode() { localStorage.setItem(STORAGE_KEYS.tableMode, tableMode); }
   function saveTableNames() { localStorage.setItem(STORAGE_KEYS.tableNames, JSON.stringify(tableNames)); }
+  
+  // Auth functions
+  function saveAuthState(user, rememberMe = false) {
+    isAuthenticated = true;
+    currentUser = user;
+    localStorage.setItem(STORAGE_KEYS.auth, 'true');
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+    localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe.toString());
+  }
+  
+  function clearAuthState() {
+    isAuthenticated = false;
+    currentUser = null;
+    localStorage.removeItem(STORAGE_KEYS.auth);
+    localStorage.removeItem(STORAGE_KEYS.user);
+    localStorage.removeItem(STORAGE_KEYS.rememberMe);
+  }
+  
+  function logout() {
+    clearAuthState();
+    currentPage = 'auth';
+    updateNavItems();
+    render();
+  }
 
   // Function to get current app version with timestamp
   function getAppVersion() {
@@ -220,7 +261,11 @@
 
   // Page navigation
   function setPage(page) {
-    currentPage = page;
+    if (!isAuthenticated && page !== 'auth') {
+      currentPage = 'auth';
+    } else {
+      currentPage = page;
+    }
     updateNavItems();
     render();
   }
@@ -229,6 +274,162 @@
     document.querySelectorAll('.nav-item').forEach(item => {
       item.classList.toggle('active', item.dataset.page === currentPage);
     });
+  }
+
+  // Auth page
+  function viewAuth() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'auth-page';
+
+    wrapper.innerHTML = `
+      <div class="auth-container">
+        <div class="auth-header">
+          <div class="auth-logo">🐂</div>
+          <h1>BullTeam</h1>
+          <p>Система управления заказами</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Вход</button>
+          <button class="auth-tab" data-tab="register">Регистрация</button>
+        </div>
+
+        <div class="auth-content">
+          <!-- Login Form -->
+          <form class="auth-form active" id="login-form">
+            <div class="form-group">
+              <label for="login-email">Email</label>
+              <input type="email" id="login-email" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="login-password">Пароль</label>
+              <input type="password" id="login-password" placeholder="••••••••" required>
+            </div>
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="login-remember">
+                <span class="checkmark"></span>
+                Запомнить меня
+              </label>
+            </div>
+            <button type="submit" class="btn primary auth-btn">Войти</button>
+            <div class="auth-error" id="login-error"></div>
+          </form>
+
+          <!-- Register Form -->
+          <form class="auth-form" id="register-form">
+            <div class="form-group">
+              <label for="register-name">Имя</label>
+              <input type="text" id="register-name" placeholder="Ваше имя" required>
+            </div>
+            <div class="form-group">
+              <label for="register-email">Email</label>
+              <input type="email" id="register-email" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="register-password">Пароль</label>
+              <input type="password" id="register-password" placeholder="••••••••" required minlength="6">
+            </div>
+            <div class="form-group">
+              <label for="register-confirm">Подтвердите пароль</label>
+              <input type="password" id="register-confirm" placeholder="••••••••" required>
+            </div>
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="register-remember">
+                <span class="checkmark"></span>
+                Запомнить меня
+              </label>
+            </div>
+            <button type="submit" class="btn primary auth-btn">Зарегистрироваться</button>
+            <div class="auth-error" id="register-error"></div>
+          </form>
+        </div>
+
+        <div class="auth-footer">
+          <p>Демо-версия • Для тестирования используйте любые данные</p>
+        </div>
+      </div>
+    `;
+
+    // Tab switching
+    wrapper.querySelectorAll('.auth-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        
+        // Update tabs
+        wrapper.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Update forms
+        wrapper.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+        wrapper.querySelector(`#${tabName}-form`).classList.add('active');
+        
+        // Clear errors
+        wrapper.querySelectorAll('.auth-error').forEach(error => error.textContent = '');
+      });
+    });
+
+    // Login form handler
+    wrapper.querySelector('#login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = wrapper.querySelector('#login-email').value;
+      const password = wrapper.querySelector('#login-password').value;
+      const rememberMe = wrapper.querySelector('#login-remember').checked;
+      
+      if (email && password) {
+        // Simulate login (in real app, this would be API call)
+        const user = {
+          id: Date.now(),
+          name: email.split('@')[0],
+          email: email,
+          subscription: 'free', // Will be used for subscription system
+          createdAt: new Date().toISOString()
+        };
+        
+        saveAuthState(user, rememberMe);
+        currentPage = 'tables';
+        updateNavItems();
+        render();
+      } else {
+        wrapper.querySelector('#login-error').textContent = 'Заполните все поля';
+      }
+    });
+
+    // Register form handler
+    wrapper.querySelector('#register-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = wrapper.querySelector('#register-name').value;
+      const email = wrapper.querySelector('#register-email').value;
+      const password = wrapper.querySelector('#register-password').value;
+      const confirmPassword = wrapper.querySelector('#register-confirm').value;
+      const rememberMe = wrapper.querySelector('#register-remember').checked;
+      
+      if (password !== confirmPassword) {
+        wrapper.querySelector('#register-error').textContent = 'Пароли не совпадают';
+        return;
+      }
+      
+      if (name && email && password) {
+        // Simulate registration (in real app, this would be API call)
+        const user = {
+          id: Date.now(),
+          name: name,
+          email: email,
+          subscription: 'free', // Will be used for subscription system
+          createdAt: new Date().toISOString()
+        };
+        
+        saveAuthState(user, rememberMe);
+        currentPage = 'tables';
+        updateNavItems();
+        render();
+      } else {
+        wrapper.querySelector('#register-error').textContent = 'Заполните все поля';
+      }
+    });
+
+    return wrapper;
   }
 
   function viewSearch() {
@@ -1612,6 +1813,12 @@
     const hash = location.hash || '#/';
     root.innerHTML = '';
     
+    // Check authentication
+    if (!isAuthenticated) {
+      root.appendChild(viewAuth());
+      return;
+    }
+    
     if (hash.startsWith('#/table/')) {
       const id = Number(hash.split('/').pop());
       root.appendChild(viewTable(id));
@@ -2452,6 +2659,25 @@
       </div>
 
       <div class="settings-section">
+        <h3>Аккаунт</h3>
+        <div class="settings-item">
+          <div class="settings-item-label">Пользователь</div>
+          <div class="settings-item-value">${currentUser ? currentUser.name : 'Неизвестно'}</div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-item-label">Email</div>
+          <div class="settings-item-value">${currentUser ? currentUser.email : 'Неизвестно'}</div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-item-label">Подписка</div>
+          <div class="settings-item-value">${currentUser ? (currentUser.subscription === 'free' ? 'Бесплатная' : 'Премиум') : 'Неизвестно'}</div>
+        </div>
+        <div class="settings-item">
+          <button id="logout-btn" class="btn danger">Выйти</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <h3>Информация</h3>
         <div class="settings-item">
           <div class="settings-item-label">BullTeam PWA</div>
@@ -2657,6 +2883,16 @@
         () => {
           localStorage.clear();
           location.reload();
+        }
+      );
+    });
+
+    wrapper.querySelector('#logout-btn').addEventListener('click', () => {
+      showConfirmModal(
+        'Выйти из аккаунта',
+        'Вы уверены, что хотите выйти?',
+        () => {
+          logout();
         }
       );
     });
