@@ -383,6 +383,7 @@
           id: Date.now(),
           name: email.split('@')[0],
           email: email,
+          avatar: null, // Will store base64 image data
           subscription: 'free', // Will be used for subscription system
           createdAt: new Date().toISOString()
         };
@@ -416,6 +417,7 @@
           id: Date.now(),
           name: name,
           email: email,
+          avatar: null, // Will store base64 image data
           subscription: 'free', // Will be used for subscription system
           createdAt: new Date().toISOString()
         };
@@ -2746,8 +2748,16 @@
     
     wrapper.innerHTML = `
       <div class="profile-header">
-        <div class="profile-avatar">👤</div>
-        <div class="profile-name">Официант</div>
+        <div class="profile-avatar">
+          <div class="avatar-container" id="avatar-container">
+            ${currentUser && currentUser.avatar ? 
+              `<img src="${currentUser.avatar}" alt="Avatar" class="avatar-image">` : 
+              `<div class="avatar-placeholder">👤</div>`
+            }
+            <button class="avatar-upload-btn" id="avatar-upload-btn">📷</button>
+          </div>
+        </div>
+        <div class="profile-name">Официант ${currentUser ? currentUser.name : 'Пользователь'}</div>
         <div class="profile-role">Сотрудник ресторана</div>
       </div>
       
@@ -2895,6 +2905,45 @@
           logout();
         }
       );
+    });
+
+    // Avatar upload handler
+    wrapper.querySelector('#avatar-upload-btn').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.style.display = 'none';
+      
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64 = event.target.result;
+            
+            // Update user data
+            if (currentUser) {
+              currentUser.avatar = base64;
+              saveAuthState(currentUser, localStorage.getItem(STORAGE_KEYS.rememberMe) === 'true');
+              
+              // Update avatar display
+              const avatarContainer = wrapper.querySelector('#avatar-container');
+              avatarContainer.innerHTML = `
+                <img src="${base64}" alt="Avatar" class="avatar-image">
+                <button class="avatar-upload-btn" id="avatar-upload-btn">📷</button>
+              `;
+              
+              // Re-attach event listener
+              wrapper.querySelector('#avatar-upload-btn').addEventListener('click', arguments.callee);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+      
+      document.body.appendChild(input);
+      input.click();
+      document.body.removeChild(input);
     });
     
     return wrapper;
