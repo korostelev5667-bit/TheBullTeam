@@ -38,10 +38,34 @@
 
   // Function to get current app version with timestamp
   function getAppVersion() {
-    const baseVersion = '0.2.0';
+    const baseVersion = '0.6.0';
     const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
     return `${baseVersion}.${timestamp}`;
   }
+
+  // Function to force update the app
+  function forceUpdate() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister();
+        });
+        // Clear all caches
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+        // Reload the page
+        window.location.reload(true);
+      });
+    } else {
+      window.location.reload(true);
+    }
+  }
+
+  // Make forceUpdate available globally
+  window.clearCache = forceUpdate;
 
 
   
@@ -1603,6 +1627,9 @@
         case 'profile':
           root.appendChild(viewProfile());
           break;
+        case 'settings':
+          root.appendChild(viewSettings());
+          break;
         case 'tables':
         default:
           root.appendChild(viewHome());
@@ -2372,6 +2399,120 @@
     return wrapper;
   }
 
+  // Settings page
+  function viewSettings() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'page';
+
+    const panel = document.createElement('section');
+    panel.className = 'panel';
+    panel.innerHTML = `
+      <div class="panel-header">
+        <h2>Настройки</h2>
+      </div>
+      
+      <div class="settings-section">
+        <h3>Приложение</h3>
+        <div class="settings-item">
+          <div class="settings-item-label">Версия</div>
+          <div class="settings-item-value">${getAppVersion()}</div>
+        </div>
+        
+        <div class="settings-item">
+          <div class="settings-item-label">Всего столов</div>
+          <div class="settings-item-value">${activeTables.length}</div>
+        </div>
+        
+        <div class="settings-item">
+          <div class="settings-item-label">Всего заказов</div>
+          <div class="settings-item-value">${Object.values(tableOrders).reduce((sum, orders) => sum + (orders ? orders.length : 0), 0)}</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Обновления</h3>
+        <div class="settings-item">
+          <button id="force-update-btn" class="btn primary">🔄 Принудительное обновление</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Данные</h3>
+        <div class="settings-item">
+          <button id="clear-cache-btn" class="btn secondary">Очистить кэш</button>
+        </div>
+        
+        <div class="settings-item">
+          <button id="export-data-btn" class="btn secondary">Экспорт данных</button>
+        </div>
+        
+        <div class="settings-item">
+          <button id="reset-app-btn" class="btn danger">Сбросить приложение</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Информация</h3>
+        <div class="settings-item">
+          <div class="settings-item-label">BullTeam PWA</div>
+          <div class="settings-item-value">Система управления заказами</div>
+        </div>
+      </div>
+    `;
+
+    wrapper.appendChild(panel);
+
+    // Event handlers
+    wrapper.querySelector('#force-update-btn').addEventListener('click', () => {
+      showConfirmModal(
+        'Принудительное обновление',
+        'Это действие обновит приложение до последней версии. Продолжить?',
+        () => {
+          forceUpdate();
+        }
+      );
+    });
+
+    wrapper.querySelector('#clear-cache-btn').addEventListener('click', () => {
+      showConfirmModal(
+        'Очистить кэш',
+        'Это действие очистит все кэшированные данные и перезагрузит приложение. Продолжить?',
+        () => {
+          window.clearCache();
+        }
+      );
+    });
+    
+    wrapper.querySelector('#export-data-btn').addEventListener('click', () => {
+      const data = {
+        tables: activeTables,
+        orders: tableOrders,
+        exportDate: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bullteam-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    
+    wrapper.querySelector('#reset-app-btn').addEventListener('click', () => {
+      showConfirmModal(
+        'Сбросить приложение',
+        'Это действие удалит ВСЕ данные: столы, заказы, настройки. Действие необратимо! Продолжить?',
+        () => {
+          localStorage.clear();
+          location.reload();
+        }
+      );
+    });
+    
+    return wrapper;
+  }
+
   // Profile page
   function viewProfile() {
     const wrapper = document.createElement('div');
@@ -2522,6 +2663,17 @@
     
     return wrapper;
   }
+
+  // Navigation event handlers
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-item')) {
+      const navItem = e.target.closest('.nav-item');
+      const page = navItem.dataset.page;
+      if (page) {
+        setPage(page);
+      }
+    }
+  });
 
   // init
   loadState();

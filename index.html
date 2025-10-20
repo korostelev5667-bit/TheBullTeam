@@ -12,14 +12,17 @@
     <meta name="msapplication-TileColor" content="#0f172a" />
     <meta name="msapplication-tap-highlight" content="no" />
     <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>BullTeam</title>
 
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="search-filters.css" />
+    <link rel="stylesheet" href="styles.css?v=0.6.0&t=20250120&fix=sw" />
+    <link rel="stylesheet" href="search-filters.css?v=0.6.0&t=20250120&fix=sw" />
   </head>
   <body>
       <header class="app-header">
@@ -30,29 +33,33 @@
     <main class="container" id="app"></main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-page="tables">
-        <div class="nav-icon">🏠</div>
-        <span>Столы</span>
+      <button class="nav-item" data-page="profile">
+        <div class="nav-icon">👤</div>
+        <span>Профиль</span>
       </button>
       <button class="nav-item" data-page="search">
         <div class="nav-icon">🔍</div>
         <span>Поиск</span>
       </button>
+      <button class="nav-item active" data-page="tables">
+        <div class="nav-icon">🐂</div>
+        <span>Столы</span>
+      </button>
       <button class="nav-item" data-page="learn">
         <div class="nav-icon">📚</div>
         <span>Изучение</span>
       </button>
-      <button class="nav-item" data-page="profile">
-        <div class="nav-icon">👤</div>
-        <span>Профиль</span>
+      <button class="nav-item" data-page="settings">
+        <div class="nav-icon">⚙️</div>
+        <span>Настройки</span>
       </button>
     </nav>
 
     <footer class="app-footer"></footer>
 
-    <script src="dishes-data.js"></script>
-    <script src="bar_drinks.js"></script>
-    <script src="app.js" defer></script>
+    <script src="dishes-data.js?v=0.6.0&t=20250120&fix=sw"></script>
+    <script src="bar_drinks.js?v=0.6.0&t=20250120&fix=sw"></script>
+    <script src="app.js?v=0.6.0&t=20250120&fix=sw" defer></script>
   </body>
   </html>
 
