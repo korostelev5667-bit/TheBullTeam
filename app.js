@@ -79,7 +79,7 @@
 
   // Function to get current app version with timestamp
   function getAppVersion() {
-    const baseVersion = '0.7.0';
+    const baseVersion = '0.8.0';
     const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
     return `${baseVersion}.${timestamp}`;
   }
@@ -2352,147 +2352,162 @@
 
       const frag = document.createDocumentFragment();
       tableOrders[tableNumber].forEach(order => {
-        const row = document.createElement('div');
-        row.className = 'todo-item';
-
-        const content = document.createElement('div');
-        content.className = 'todo-content';
-
-        const title = document.createElement('div');
-        title.className = 'todo-title';
-        title.textContent = order.itemName;
+        const container = document.createElement('div');
+        container.className = 'dish-item-container';
         
-        // Add takeaway indicator
-        if (order.isTakeaway) {
-          const takeawayIcon = document.createElement('span');
-          takeawayIcon.textContent = ' 🥡';
-          takeawayIcon.className = 'takeaway-icon';
-          takeawayIcon.title = 'С собой';
-          title.appendChild(takeawayIcon);
-        }
-        
-        // Add custom dish indicator
-        if (order.isCustom) {
-          title.style.fontStyle = 'italic';
-          title.style.opacity = '0.8';
-        }
+        const dishItem = document.createElement('div');
+        dishItem.className = 'dish-item';
+        dishItem.setAttribute('data-order-id', order.id);
         
         // Add strikethrough styling based on status
         if (order.status === 'rkeeper') {
-          title.style.textDecoration = 'line-through';
-          title.style.color = '#22c55e'; // Green color
+          dishItem.style.textDecoration = 'line-through';
+          dishItem.style.color = '#22c55e'; // Green color
         } else if (order.status === 'served') {
-          title.style.textDecoration = 'line-through';
-          title.style.color = '#ef4444'; // Red color
+          dishItem.style.textDecoration = 'line-through';
+          dishItem.style.color = '#ef4444'; // Red color
         }
 
-        const meta = document.createElement('div');
-        meta.className = 'todo-meta';
-        meta.innerHTML = `
-          <span class="todo-price">${order.price}</span>
-          <span class="todo-rkeeper">R_keeper: ${order.rkeeper}</span>
+        dishItem.innerHTML = `
+          <div class="dish-item-header">
+            <h3 class="dish-name">${order.itemName}</h3>
+            <p class="dish-price">${order.price}</p>
+          </div>
+          <div class="dish-content">
+            <img src="./images/placeholder-dish.svg" 
+                 alt="${order.itemName}" 
+                 class="dish-image">
+            <div class="dish-details">
+              <p class="todo-meta">Стол ${tableNumber} • Количество: ${order.quantity}</p>
+              <p class="todo-rkeeper">R_keeper: ${order.rkeeper}</p>
+              <div class="dish-actions">
+                <button class="dish-action-btn" onclick="showDishDetails('${order.id}')">Подробнее</button>
+                <button class="dish-action-btn ${order.isTakeaway ? 'takeaway' : ''}" onclick="toggleTakeaway('${order.id}')">
+                  ${order.isTakeaway ? '✓ С собой' : 'С собой'}
+                </button>
+                <button class="dish-action-btn ${order.status === 'rkeeper' ? 'takeaway' : ''}" onclick="toggleOrderStatus('${order.id}', 'rkeeper')">
+                  ${order.status === 'rkeeper' ? '✓ R_keeper' : 'R_keeper'}
+                </button>
+              </div>
+              <div class="dish-note">
+                <div class="dish-note-label">ЗАМЕТКА:</div>
+                <input type="text" 
+                       class="dish-note-input" 
+                       placeholder="Добавьте заметку к блюду..." 
+                       value="${order.notes || ''}"
+                       onchange="updateOrderNote('${order.id}', this.value)">
+              </div>
+            </div>
+          </div>
         `;
-
-        // Notes section
-        const notesSection = document.createElement('div');
-        notesSection.className = 'todo-notes-section';
         
-        const notesLabel = document.createElement('div');
-        notesLabel.className = 'todo-notes-label';
-        notesLabel.textContent = 'Заметка:';
+        const deleteOverlay = document.createElement('div');
+        deleteOverlay.className = 'dish-delete-overlay';
+        deleteOverlay.innerHTML = '🗑️';
+        deleteOverlay.onclick = () => confirmDeleteOrder(order.id);
         
-        const notesInput = document.createElement('textarea');
-        notesInput.className = 'todo-notes-input';
-        notesInput.placeholder = 'Добавьте заметку к блюду...';
-        notesInput.value = order.notes || '';
-        notesInput.rows = 2;
-        notesInput.addEventListener('blur', () => {
-          updateOrderNote(order.id, notesInput.value.trim());
-        });
-        notesInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            notesInput.blur();
-          }
-        });
-
-        notesSection.appendChild(notesLabel);
-        notesSection.appendChild(notesInput);
-
-        content.appendChild(title);
-        content.appendChild(meta);
-
-        const controls = document.createElement('div');
-        controls.className = 'todo-controls';
-
-        const quantityControls = document.createElement('div');
-        quantityControls.className = 'quantity-controls';
-
-        const minusBtn = document.createElement('button');
-        minusBtn.textContent = '-';
-        minusBtn.className = 'btn quantity-btn';
-        minusBtn.onclick = () => changeQuantity(order.id, -1);
-
-        const quantity = document.createElement('span');
-        quantity.textContent = order.quantity;
-        quantity.className = 'quantity';
-
-        const plusBtn = document.createElement('button');
-        plusBtn.textContent = '+';
-        plusBtn.className = 'btn quantity-btn';
-        plusBtn.onclick = () => changeQuantity(order.id, 1);
-
-        quantityControls.appendChild(minusBtn);
-        quantityControls.appendChild(quantity);
-        quantityControls.appendChild(plusBtn);
-
-        const statusControls = document.createElement('div');
-        statusControls.className = 'status-controls';
+        container.appendChild(dishItem);
+        container.appendChild(deleteOverlay);
         
-        // Takeaway button
-        const takeawayBtn = document.createElement('button');
-        takeawayBtn.textContent = order.isTakeaway ? '✓ 🥡' : '🥡';
-        takeawayBtn.className = order.isTakeaway ? 'btn takeaway' : 'btn secondary';
-        takeawayBtn.onclick = () => toggleTakeaway(order.id);
+        // Add swipe functionality
+        addSwipeToDelete(container, order.id);
         
-        // R_keeper button
-        const rkeeperBtn = document.createElement('button');
-        rkeeperBtn.textContent = order.status === 'rkeeper' ? '✓ R' : 'R';
-        rkeeperBtn.className = order.status === 'rkeeper' ? 'btn success' : 'btn secondary';
-        rkeeperBtn.onclick = () => toggleOrderStatus(order.id, 'rkeeper');
-        
-        // Served button
-        const servedBtn = document.createElement('button');
-        servedBtn.textContent = order.status === 'served' ? '✓ V' : 'V';
-        servedBtn.className = order.status === 'served' ? 'btn danger' : 'btn secondary';
-        servedBtn.onclick = () => toggleOrderStatus(order.id, 'served');
-
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = 'Удалить';
-        removeBtn.className = 'btn danger remove-btn';
-        removeBtn.onclick = () => removeOrder(order.id);
-
-        statusControls.appendChild(takeawayBtn);
-        statusControls.appendChild(rkeeperBtn);
-        statusControls.appendChild(servedBtn);
-
-        controls.appendChild(quantityControls);
-        controls.appendChild(statusControls);
-        controls.appendChild(removeBtn);
-
-        const mainRow = document.createElement('div');
-        mainRow.className = 'todo-main-row';
-        mainRow.appendChild(content);
-        mainRow.appendChild(controls);
-        
-        row.appendChild(mainRow);
-        row.appendChild(notesSection);
-
-        frag.appendChild(row);
+        frag.appendChild(container);
       });
       
       todoList.appendChild(frag);
+    }
+
+    // Swipe to delete functionality
+    function addSwipeToDelete(container, orderId) {
+      let startX = 0;
+      let currentX = 0;
+      let isDragging = false;
+      const dishItem = container.querySelector('.dish-item');
+      const deleteOverlay = container.querySelector('.dish-delete-overlay');
       
+      container.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        dishItem.style.transition = 'none';
+      });
+      
+      container.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        
+        currentX = e.touches[0].clientX;
+        const deltaX = currentX - startX;
+        
+        // Only allow swiping left (negative deltaX)
+        if (deltaX < 0) {
+          const translateX = Math.max(deltaX, -80);
+          dishItem.style.transform = `translateX(${translateX}px)`;
+        }
+      });
+      
+      container.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const deltaX = currentX - startX;
+        dishItem.style.transition = 'transform 0.3s ease';
+        
+        if (deltaX < -40) {
+          // Swipe threshold reached, show delete overlay
+          dishItem.style.transform = 'translateX(-80px)';
+          dishItem.classList.add('swiping');
+        } else {
+          // Reset position
+          dishItem.style.transform = 'translateX(0)';
+          dishItem.classList.remove('swiping');
+        }
+      });
+      
+      // Click outside to reset
+      document.addEventListener('click', (e) => {
+        if (!container.contains(e.target)) {
+          dishItem.style.transform = 'translateX(0)';
+          dishItem.classList.remove('swiping');
+        }
+      });
+    }
+    
+    // Confirm delete order
+    function confirmDeleteOrder(orderId) {
+      const order = tableOrders[tableNumber].find(o => o.id === orderId);
+      if (!order) return;
+      
+      showConfirmDialog(
+        'Удалить блюдо?',
+        `Вы точно хотите удалить "${order.itemName}"?`,
+        () => {
+          removeOrder(orderId);
+          // Reset any swiping states
+          const containers = document.querySelectorAll('.dish-item-container');
+          containers.forEach(container => {
+            const dishItem = container.querySelector('.dish-item');
+            dishItem.style.transform = 'translateX(0)';
+            dishItem.classList.remove('swiping');
+          });
+        }
+      );
+    }
+    
+    // Show dish details
+    function showDishDetails(orderId) {
+      const order = tableOrders[tableNumber].find(o => o.id === orderId);
+      if (!order) return;
+      
+      const details = `
+        <strong>${order.itemName}</strong><br>
+        Цена: ${order.price}<br>
+        Количество: ${order.quantity}<br>
+        R_keeper: ${order.rkeeper}<br>
+        ${order.isTakeaway ? 'С собой: Да' : 'С собой: Нет'}<br>
+        ${order.notes ? `Заметка: ${order.notes}` : ''}
+      `;
+      
+      showConfirmDialog('Детали блюда', details, null, 'Закрыть');
     }
 
     function changeQuantity(orderId, delta) {

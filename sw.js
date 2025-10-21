@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waiter-pwa-v7';
+const CACHE_NAME = 'waiter-pwa-v8';
 const ASSETS = [
   './',
   './index.html',
