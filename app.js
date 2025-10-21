@@ -53,6 +53,26 @@
   function saveTableMode() { localStorage.setItem(STORAGE_KEYS.tableMode, tableMode); }
   function saveTableNames() { localStorage.setItem(STORAGE_KEYS.tableNames, JSON.stringify(tableNames)); }
   
+  // Favorites functions
+  function toggleFavorite(dishName) {
+    const index = favoriteDishes.indexOf(dishName);
+    if (index > -1) {
+      favoriteDishes.splice(index, 1);
+    } else {
+      favoriteDishes.push(dishName);
+    }
+    saveFavorites();
+  }
+  
+  function isFavorite(dishName) {
+    return favoriteDishes.includes(dishName);
+  }
+  
+  function getFavoriteDishes() {
+    if (!db || !db.dishes) return [];
+    return db.dishes.filter(dish => favoriteDishes.includes(dish.name));
+  }
+  
   // Auth functions
   function saveAuthState(user, rememberMe = false) {
     isAuthenticated = true;
@@ -79,7 +99,7 @@
 
   // Function to get current app version with timestamp
   function getAppVersion() {
-    const baseVersion = '0.8.0';
+    const baseVersion = '0.9.0';
     const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
     return `${baseVersion}.${timestamp}`;
   }
@@ -264,7 +284,7 @@
     if (!isAuthenticated && page !== 'auth') {
       currentPage = 'auth';
     } else {
-      currentPage = page;
+    currentPage = page;
     }
     updateNavItems();
     render();
@@ -443,6 +463,12 @@
     panel.innerHTML = `
       <div class="panel-header">
         <h2>Поиск блюд</h2>
+      </div>
+      
+      <!-- Tabs -->
+      <div class="search-tabs">
+        <button class="tab-btn active" data-tab="search">🔍 Поиск</button>
+        <button class="tab-btn" data-tab="favorites">⭐ Избранное</button>
       </div>
       <div class="search-row">
         <input id="search-main" placeholder="Начните вводить название блюда..." />
@@ -932,7 +958,13 @@
           <div class="menu-item-content">
             <div class="menu-item-header">
               <h3 class="menu-item-title">${dish.name}</h3>
-              <div class="menu-item-price">${dish.price || '—'}</div>
+              <div class="menu-item-actions">
+                <button class="favorite-btn ${isFavorite(dish.name) ? 'favorited' : ''}" 
+                        onclick="event.stopPropagation(); toggleFavorite('${dish.name}'); this.classList.toggle('favorited');">
+                  ${isFavorite(dish.name) ? '⭐' : '☆'}
+                </button>
+                <div class="menu-item-price">${dish.price || '—'}</div>
+              </div>
             </div>
             <div class="menu-item-meta">
               <span class="menu-item-category">${dish.category || 'Без категории'}</span>
@@ -1077,6 +1109,109 @@
       
       sortBtn.textContent = sortOptions[nextIndex].label;
       updateSearchResults();
+    });
+    
+    // Tab switching functionality
+    const tabBtns = panel.querySelectorAll('.tab-btn');
+    let currentTab = 'search';
+    
+    function switchTab(tabName) {
+      currentTab = tabName;
+      
+      // Update tab buttons
+      tabBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+      
+      // Show/hide appropriate content
+      if (tabName === 'favorites') {
+        showFavoritesTab();
+      } else {
+        showSearchTab();
+      }
+    }
+    
+    function showFavoritesTab() {
+      const favoriteDishes = getFavoriteDishes();
+      
+      if (favoriteDishes.length === 0) {
+        resultsContainer.innerHTML = `
+          <div style="padding: 40px; text-align: center; color: var(--muted);">
+            <div style="font-size: 48px; margin-bottom: 16px;">⭐</div>
+            <h3>Нет избранных блюд</h3>
+            <p>Добавьте блюда в избранное, нажав на звездочку при поиске</p>
+          </div>
+        `;
+      } else {
+        resultsContainer.innerHTML = '';
+        favoriteDishes.forEach(dish => {
+          const dishCard = createDishCard(dish);
+          resultsContainer.appendChild(dishCard);
+        });
+      }
+      
+      // Hide search-specific elements
+      searchInput.style.display = 'none';
+      filterBtn.style.display = 'none';
+      filtersPanel.style.display = 'none';
+      searchStats.style.display = 'none';
+    }
+    
+    function showSearchTab() {
+      // Show search-specific elements
+      searchInput.style.display = 'block';
+      filterBtn.style.display = 'block';
+      searchStats.style.display = 'block';
+      
+      // Show initial message or current results
+      if (filteredDishes.length === 0) {
+        resultsContainer.innerHTML = `
+          <div style="padding: 20px; text-align: center; color: var(--muted);">
+            Начните поиск блюд для просмотра полного описания
+          </div>
+        `;
+      } else {
+        updateSearchResults();
+      }
+    }
+    
+    function createDishCard(dish) {
+      const card = document.createElement('div');
+      card.className = 'dish-card';
+      card.innerHTML = `
+        <div class="dish-header">
+          <h3 class="dish-name">${dish.name}</h3>
+          <button class="favorite-btn ${isFavorite(dish.name) ? 'favorited' : ''}" 
+                  onclick="toggleFavorite('${dish.name}'); this.classList.toggle('favorited');">
+            ${isFavorite(dish.name) ? '⭐' : '☆'}
+          </button>
+        </div>
+        <div class="dish-meta">
+          <span class="dish-price">${dish.price}</span>
+          <span class="dish-category">${dish.category || 'Без категории'}</span>
+        </div>
+        ${dish.description ? `<p class="dish-description">${dish.description.join(' ')}</p>` : ''}
+        ${dish.composition && dish.composition.length > 0 ? 
+          `<div class="dish-composition">
+            <strong>Состав:</strong> ${dish.composition.join(', ')}
+          </div>` : ''}
+        ${dish.allergens && dish.allergens.length > 0 && dish.allergens[0] !== '-' ? 
+          `<div class="dish-allergens">
+            <strong>Аллергены:</strong> ${dish.allergens.join(', ')}
+          </div>` : ''}
+        ${dish.kbju && dish.kbju !== '-' ? 
+          `<div class="dish-kbju">
+            <strong>КБЖУ:</strong> ${dish.kbju}
+          </div>` : ''}
+      `;
+      return card;
+    }
+    
+    // Add tab click handlers
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchTab(btn.dataset.tab);
+      });
     });
     
     return wrapper;
@@ -1934,6 +2069,22 @@
           💡 Введите название блюда - оно будет найдено автоматически или добавлено как произвольное
         </div>
       </div>
+      
+      <!-- Favorites section -->
+      <div class="favorites-section" id="favorites-section" style="display: none;">
+        <div class="favorites-header">
+          <h3>⭐ Избранные блюда</h3>
+          <button id="toggle-favorites" class="btn secondary">Скрыть</button>
+        </div>
+        <div class="favorites-grid" id="favorites-grid">
+          <!-- Will be populated dynamically -->
+        </div>
+      </div>
+      
+      <!-- Show favorites button -->
+      <div class="show-favorites-section">
+        <button id="show-favorites-btn" class="btn secondary">⭐ Показать избранные</button>
+      </div>
       <div class="menu-list" id="todo-list"></div>
       <div class="bottom-bar">
         <span class="chip">Заказов в столе: ${tableOrders[tableNumber] ? tableOrders[tableNumber].reduce((sum, o) => sum + o.quantity, 0) : 0}</span>
@@ -2374,9 +2525,10 @@
             <p class="dish-price">${order.price}</p>
           </div>
           <div class="dish-content">
-            <img src="./images/placeholder-dish.svg" 
+            <img src="${getDishImage(order.itemName)}" 
                  alt="${order.itemName}" 
-                 class="dish-image">
+                 class="dish-image"
+                 onerror="this.src='./images/placeholder-dish.svg'">
             <div class="dish-details">
               <p class="todo-meta">Стол ${tableNumber} • Количество: ${order.quantity}</p>
               <p class="todo-rkeeper">R_keeper: ${order.rkeeper}</p>
@@ -2416,6 +2568,31 @@
       });
       
       todoList.appendChild(frag);
+    }
+
+    // Get dish image based on name
+    function getDishImage(dishName) {
+      const name = dishName.toLowerCase();
+      
+      // Check for specific dishes
+      if (name.includes('борщ') || name.includes('borscht')) {
+        return './images/borscht.jpg';
+      }
+      if (name.includes('суп') || name.includes('soup')) {
+        return './images/soup.jpg';
+      }
+      if (name.includes('стейк') || name.includes('steak')) {
+        return './images/steak.jpg';
+      }
+      if (name.includes('куриц') || name.includes('chicken')) {
+        return './images/chicken.jpg';
+      }
+      if (name.includes('морожен') || name.includes('ice cream')) {
+        return './images/ice-cream.jpg';
+      }
+      
+      // Default placeholder
+      return './images/placeholder-dish.svg';
     }
 
     // Swipe to delete functionality
@@ -2610,6 +2787,70 @@
       }
     });
 
+    // Favorites functionality
+    const favoritesSection = panelMenu.querySelector('#favorites-section');
+    const favoritesGrid = panelMenu.querySelector('#favorites-grid');
+    const showFavoritesBtn = panelMenu.querySelector('#show-favorites-btn');
+    const toggleFavoritesBtn = panelMenu.querySelector('#toggle-favorites');
+    
+    function renderFavorites() {
+      const favoriteDishes = getFavoriteDishes();
+      favoritesGrid.innerHTML = '';
+      
+      if (favoriteDishes.length === 0) {
+        favoritesGrid.innerHTML = `
+          <div style="padding: 20px; text-align: center; color: var(--muted);">
+            Нет избранных блюд. Добавьте их в разделе "Поиск"
+          </div>
+        `;
+        return;
+      }
+      
+      favoriteDishes.forEach(dish => {
+        const favoriteCard = document.createElement('div');
+        favoriteCard.className = 'favorite-card';
+        favoriteCard.innerHTML = `
+          <div class="favorite-info">
+            <h4>${dish.name}</h4>
+            <span class="favorite-price">${dish.price}</span>
+          </div>
+          <button class="btn primary btn-sm" data-dish-name="${dish.name}">
+            Добавить
+          </button>
+        `;
+        
+        // Add click handler for quick add
+        favoriteCard.querySelector('button').addEventListener('click', () => {
+          addOrderToTable(tableNumber, dish);
+          renderTodoList();
+          
+          // Show success feedback
+          const btn = favoriteCard.querySelector('button');
+          const originalText = btn.textContent;
+          btn.textContent = '✓ Добавлено';
+          btn.classList.add('success');
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove('success');
+          }, 1500);
+        });
+        
+        favoritesGrid.appendChild(favoriteCard);
+      });
+    }
+    
+    // Show/hide favorites
+    showFavoritesBtn.addEventListener('click', () => {
+      favoritesSection.style.display = 'block';
+      showFavoritesBtn.style.display = 'none';
+      renderFavorites();
+    });
+    
+    toggleFavoritesBtn.addEventListener('click', () => {
+      favoritesSection.style.display = 'none';
+      showFavoritesBtn.style.display = 'block';
+    });
+
     // Load dishes and initial render
     loadDb().then(({dishes}) => {
       allDishes = dishes;
@@ -2651,15 +2892,15 @@
           <div class="settings-item-label">Всего заказов</div>
           <div class="settings-item-value">${Object.values(tableOrders).reduce((sum, orders) => sum + (orders ? orders.length : 0), 0)}</div>
         </div>
-      </div>
-
+        </div>
+        
       <div class="settings-section">
         <h3>Обновления</h3>
         <div class="settings-item">
           <button id="force-update-btn" class="btn primary">🔄 Принудительное обновление</button>
         </div>
       </div>
-
+      
       <div class="settings-section">
         <h3>Данные</h3>
         <div class="settings-item">
@@ -2674,7 +2915,7 @@
           <button id="reset-app-btn" class="btn danger">Сбросить приложение</button>
         </div>
       </div>
-
+      
       <div class="settings-section">
         <h3>Аккаунт</h3>
         <div class="settings-item">
@@ -2693,7 +2934,7 @@
           <button id="logout-btn" class="btn danger">Выйти</button>
         </div>
       </div>
-
+      
       <div class="settings-section">
         <h3>Информация</h3>
         <div class="settings-item">
@@ -2702,7 +2943,7 @@
         </div>
       </div>
     `;
-
+    
     wrapper.appendChild(panel);
 
     // Event handlers
