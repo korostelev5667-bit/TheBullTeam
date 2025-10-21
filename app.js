@@ -2070,21 +2070,7 @@
         </div>
       </div>
       
-      <!-- Favorites section -->
-      <div class="favorites-section" id="favorites-section" style="display: none;">
-        <div class="favorites-header">
-          <h3>⭐ Избранные блюда</h3>
-          <button id="toggle-favorites" class="btn secondary">Скрыть</button>
-        </div>
-        <div class="favorites-grid" id="favorites-grid">
-          <!-- Will be populated dynamically -->
-        </div>
-      </div>
       
-      <!-- Show favorites button -->
-      <div class="show-favorites-section">
-        <button id="show-favorites-btn" class="btn secondary">⭐ Показать избранные</button>
-      </div>
       <div class="menu-list" id="todo-list"></div>
       <div class="bottom-bar">
         <span class="chip">Заказов в столе: ${tableOrders[tableNumber] ? tableOrders[tableNumber].reduce((sum, o) => sum + o.quantity, 0) : 0}</span>
@@ -2522,16 +2508,21 @@
         dishItem.innerHTML = `
           <div class="dish-item-header">
             <h3 class="dish-name">${order.itemName}</h3>
-            <p class="dish-price">${order.price}</p>
+            <div class="quantity-selector">
+              <button class="quantity-btn" onclick="changeQuantity('${order.id}', -1)">−</button>
+              <span class="quantity-display">${order.quantity}</span>
+              <button class="quantity-btn" onclick="changeQuantity('${order.id}', 1)">+</button>
+            </div>
           </div>
+          <p class="dish-price">${order.price}</p>
           <div class="dish-content">
             <img src="${getDishImage(order.itemName)}" 
                  alt="${order.itemName}" 
                  class="dish-image"
                  onerror="this.src='./images/placeholder-dish.svg'">
             <div class="dish-details">
-              <p class="todo-meta">Стол ${tableNumber} • Количество: ${order.quantity}</p>
-              <p class="todo-rkeeper">R_keeper: ${order.rkeeper}</p>
+              <p class="dish-meta">Стол ${tableNumber} • Количество: ${order.quantity}</p>
+              <p class="dish-rkeeper">R_keeper: ${order.rkeeper}</p>
               <div class="dish-actions">
                 <button class="dish-action-btn" onclick="showDishDetails('${order.id}')">Подробнее</button>
                 <button class="dish-action-btn ${order.isTakeaway ? 'takeaway' : ''}" onclick="toggleTakeaway('${order.id}')">
@@ -2544,9 +2535,10 @@
               <div class="dish-note">
                 <div class="dish-note-label">ЗАМЕТКА:</div>
                 <input type="text" 
-                       class="dish-note-input" 
+                       class="dish-note-input ${order.notes && order.notes.trim() ? 'filled' : ''}" 
                        placeholder="Добавьте заметку к блюду..." 
                        value="${order.notes || ''}"
+                       oninput="this.classList.toggle('filled', !!this.value.trim())"
                        onchange="updateOrderNote('${order.id}', this.value)">
               </div>
             </div>
@@ -2630,9 +2622,10 @@
         dishItem.style.transition = 'transform 0.3s ease';
         
         if (deltaX < -40) {
-          // Swipe threshold reached, show delete overlay
+          // Swipe threshold reached, ask to delete
           dishItem.style.transform = 'translateX(-80px)';
           dishItem.classList.add('swiping');
+          confirmDeleteOrder(orderId);
         } else {
           // Reset position
           dishItem.style.transform = 'translateX(0)';
@@ -2787,69 +2780,7 @@
       }
     });
 
-    // Favorites functionality
-    const favoritesSection = panelMenu.querySelector('#favorites-section');
-    const favoritesGrid = panelMenu.querySelector('#favorites-grid');
-    const showFavoritesBtn = panelMenu.querySelector('#show-favorites-btn');
-    const toggleFavoritesBtn = panelMenu.querySelector('#toggle-favorites');
-    
-    function renderFavorites() {
-      const favoriteDishes = getFavoriteDishes();
-      favoritesGrid.innerHTML = '';
-      
-      if (favoriteDishes.length === 0) {
-        favoritesGrid.innerHTML = `
-          <div style="padding: 20px; text-align: center; color: var(--muted);">
-            Нет избранных блюд. Добавьте их в разделе "Поиск"
-          </div>
-        `;
-        return;
-      }
-      
-      favoriteDishes.forEach(dish => {
-        const favoriteCard = document.createElement('div');
-        favoriteCard.className = 'favorite-card';
-        favoriteCard.innerHTML = `
-          <div class="favorite-info">
-            <h4>${dish.name}</h4>
-            <span class="favorite-price">${dish.price}</span>
-          </div>
-          <button class="btn primary btn-sm" data-dish-name="${dish.name}">
-            Добавить
-          </button>
-        `;
-        
-        // Add click handler for quick add
-        favoriteCard.querySelector('button').addEventListener('click', () => {
-          addOrderToTable(tableNumber, dish);
-          renderTodoList();
-          
-          // Show success feedback
-          const btn = favoriteCard.querySelector('button');
-          const originalText = btn.textContent;
-          btn.textContent = '✓ Добавлено';
-          btn.classList.add('success');
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.classList.remove('success');
-          }, 1500);
-        });
-        
-        favoritesGrid.appendChild(favoriteCard);
-      });
-    }
-    
-    // Show/hide favorites
-    showFavoritesBtn.addEventListener('click', () => {
-      favoritesSection.style.display = 'block';
-      showFavoritesBtn.style.display = 'none';
-      renderFavorites();
-    });
-    
-    toggleFavoritesBtn.addEventListener('click', () => {
-      favoritesSection.style.display = 'none';
-      showFavoritesBtn.style.display = 'block';
-    });
+    // Favorites UI removed per request
 
     // Load dishes and initial render
     loadDb().then(({dishes}) => {

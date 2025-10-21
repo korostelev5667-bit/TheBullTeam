@@ -1821,10 +1821,35 @@ body {
   flex: 1;
 }
 
+/* Quantity selector top-right like photo */
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quantity-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--divider);
+  background: #ef4444; /* red as requested earlier */
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.quantity-display {
+  min-width: 16px;
+  text-align: center;
+  font-weight: 700;
+}
+
 .dish-price {
-  color: #10b981;
-  font-weight: 600;
-  font-size: 14px;
+  color: #ffffff; /* white price as on photo */
+  font-weight: 700;
+  font-size: 16px;
   margin: 0;
 }
 
@@ -1835,8 +1860,8 @@ body {
 }
 
 .dish-image {
-  width: 50px;
-  height: 50px;
+  width: 80px;
+  height: 80px;
   border-radius: 6px;
   object-fit: cover;
   background: var(--panel);
@@ -1863,8 +1888,8 @@ body {
 
 .dish-actions {
   display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .dish-action-btn {
@@ -1914,6 +1939,12 @@ body {
 .dish-note-input:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+/* Highlight note when filled */
+.dish-note-input.filled {
+  border-color: #f59e0b; /* amber */
+  background: rgba(245, 158, 11, 0.08);
 }
 
 /* Swipe to delete */
@@ -2014,7 +2045,7 @@ body {
     padding: 6px 10px;
     font-size: 11px;
   }
-}
+
 
 /* Temporarily hide mode toggle */
 #search-mode-toggle,
