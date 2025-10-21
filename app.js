@@ -79,7 +79,7 @@
 
   // Function to get current app version with timestamp
   function getAppVersion() {
-    const baseVersion = '0.6.0';
+    const baseVersion = '0.7.0';
     const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
     return `${baseVersion}.${timestamp}`;
   }
@@ -2744,159 +2744,77 @@
   // Profile page
   function viewProfile() {
     const wrapper = document.createElement('div');
-    wrapper.className = 'profile-content';
+    wrapper.className = 'page';
     
-    wrapper.innerHTML = `
-      <div class="profile-header">
-        <div class="profile-avatar">
-          <div class="avatar-container" id="avatar-container">
-            ${currentUser && currentUser.avatar ? 
-              `<img src="${currentUser.avatar}" alt="Avatar" class="avatar-image">` : 
-              `<div class="avatar-placeholder">👤</div>`
-            }
-            <button class="avatar-upload-btn" id="avatar-upload-btn">📷</button>
+    const panel = document.createElement('section');
+    panel.className = 'panel';
+    panel.innerHTML = `
+      <div class="panel-header">
+        <h2>Профиль</h2>
+      </div>
+      
+      <div class="profile-content">
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <div class="avatar-container" id="avatar-container">
+              ${currentUser && currentUser.avatar ? 
+                `<img src="${currentUser.avatar}" alt="Avatar" class="avatar-image">` : 
+                `<div class="avatar-placeholder">👤</div>`
+              }
+              <button class="avatar-upload-btn" id="avatar-upload-btn">📷</button>
+            </div>
+          </div>
+          <div class="profile-name">Официант ${currentUser ? currentUser.name : 'Пользователь'}</div>
+          <div class="profile-role">Сотрудник ресторана</div>
+        </div>
+        
+        <div class="settings-section">
+          <h3>Информация</h3>
+          <div class="settings-item">
+            <div class="settings-item-label">Email</div>
+            <div class="settings-item-value">${currentUser ? currentUser.email : 'Неизвестно'}</div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-label">Подписка</div>
+            <div class="settings-item-value">${currentUser ? (currentUser.subscription === 'free' ? 'Бесплатная' : 'Премиум') : 'Неизвестно'}</div>
           </div>
         </div>
-        <div class="profile-name">Официант ${currentUser ? currentUser.name : 'Пользователь'}</div>
-        <div class="profile-role">Сотрудник ресторана</div>
-      </div>
-      
-      <div class="settings-section">
-        <div class="settings-title">Настройки</div>
         
-        <div class="settings-item">
-          <div class="settings-item-label">Уведомления</div>
-          <div class="settings-toggle active" id="notifications-toggle"></div>
+        <div class="settings-section">
+          <h3>Настройки</h3>
+          <div class="settings-item">
+            <div class="settings-item-label">Уведомления</div>
+            <div class="settings-toggle active" id="notifications-toggle"></div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-label">Звуковые сигналы</div>
+            <div class="settings-toggle active" id="sounds-toggle"></div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-label">Темная тема</div>
+            <div class="settings-toggle active" id="theme-toggle"></div>
+          </div>
         </div>
         
-        <div class="settings-item">
-          <div class="settings-item-label">Звуковые сигналы</div>
-          <div class="settings-toggle active" id="sounds-toggle"></div>
+        <div class="settings-section">
+          <h3>Действия</h3>
+          <div class="settings-item">
+            <button id="logout-btn" class="btn danger" style="width: 100%;">Выйти из аккаунта</button>
+          </div>
         </div>
-        
-        <div class="settings-item">
-          <div class="settings-item-label">Темная тема</div>
-          <div class="settings-toggle active" id="theme-toggle"></div>
-        </div>
-      </div>
-      
-      <div class="settings-section mode-settings-section">
-        <div class="settings-title">Режим работы со столами</div>
-        
-        <div class="settings-item">
-          <div class="settings-item-label">Режим поиска</div>
-          <div class="settings-toggle active" id="search-mode-toggle"></div>
-        </div>
-        
-        <div class="settings-item">
-          <div class="settings-item-label">To-do режим</div>
-          <div class="settings-toggle" id="todo-mode-toggle"></div>
-        </div>
-      </div>
-      
-      <div class="settings-section">
-        <div class="settings-title">Информация</div>
-        
-        <div class="settings-item">
-          <div class="settings-item-label">Версия приложения</div>
-          <div class="settings-item-value">${getAppVersion()}</div>
-        </div>
-        
-        <div class="settings-item">
-          <div class="settings-item-label">Всего столов</div>
-          <div class="settings-item-value">${activeTables.length}</div>
-        </div>
-        
-        <div class="settings-item">
-          <div class="settings-item-label">Всего заказов</div>
-          <div class="settings-item-value">${Object.values(tableOrders).reduce((sum, orders) => sum + orders.length, 0)}</div>
-        </div>
-      </div>
-      
-      <div class="settings-section">
-        <div class="settings-title">Действия</div>
-        
-        <button class="btn secondary" id="clear-cache-btn" style="width: 100%; margin-bottom: 12px;">
-          Очистить кэш
-        </button>
-        
-        <button class="btn secondary" id="export-data-btn" style="width: 100%; margin-bottom: 12px;">
-          Экспорт данных
-        </button>
-        
-        <button class="btn danger" id="reset-app-btn" style="width: 100%;">
-          Сбросить приложение
-        </button>
       </div>
     `;
     
+    wrapper.appendChild(panel);
+
     // Toggle handlers
     wrapper.querySelectorAll('.settings-toggle').forEach(toggle => {
       toggle.addEventListener('click', () => {
         toggle.classList.toggle('active');
       });
     });
-    
-    // Special handlers for table mode toggles - DISABLED
-    // const searchModeToggle = wrapper.querySelector('#search-mode-toggle');
-    // const todoModeToggle = wrapper.querySelector('#todo-mode-toggle');
-    
-    // Set initial state - DISABLED
-    // searchModeToggle.classList.toggle('active', tableMode === 'search');
-    // todoModeToggle.classList.toggle('active', tableMode === 'todo');
-    
-    // searchModeToggle.addEventListener('click', () => {
-    //   tableMode = 'search';
-    //   searchModeToggle.classList.add('active');
-    //   todoModeToggle.classList.remove('active');
-    //   saveTableMode();
-    // });
-    
-    // todoModeToggle.addEventListener('click', () => {
-    //   tableMode = 'todo';
-    //   todoModeToggle.classList.add('active');
-    //   searchModeToggle.classList.remove('active');
-    //   saveTableMode();
-    // });
-    
-    // Action handlers
-    wrapper.querySelector('#clear-cache-btn').addEventListener('click', () => {
-      showConfirmModal(
-        'Очистить кэш',
-        'Это действие очистит все кэшированные данные и перезагрузит приложение. Продолжить?',
-        () => {
-          window.clearCache();
-        }
-      );
-    });
-    
-    wrapper.querySelector('#export-data-btn').addEventListener('click', () => {
-      const data = {
-        tables: activeTables,
-        orders: tableOrders,
-        exportDate: new Date().toISOString()
-      };
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `waiter-data-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-    
-    wrapper.querySelector('#reset-app-btn').addEventListener('click', () => {
-      showConfirmModal(
-        'Сбросить приложение',
-        'Это действие удалит ВСЕ данные: столы, заказы, настройки. Действие необратимо! Продолжить?',
-        () => {
-          localStorage.clear();
-          location.reload();
-        }
-      );
-    });
 
+    // Logout handler
     wrapper.querySelector('#logout-btn').addEventListener('click', () => {
       showConfirmModal(
         'Выйти из аккаунта',

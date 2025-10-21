@@ -1,15 +1,15 @@
-const CACHE_NAME = 'waiter-pwa-v6';
+const CACHE_NAME = 'waiter-pwa-v7';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/dishes-data.js',
-  '/bar_drinks-data.js',
-  '/dishes.json',
-  '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './dishes-data.js',
+  './bar_drinks-data.js',
+  './dishes.json',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -34,6 +34,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
+
+  // Handle navigation requests (for PWA)
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return caches.match('./index.html');
+      })
+    );
+    return;
+  }
 
   // Always fetch fresh from network for HTML, CSS, and JS files
   if (request.url.includes('.html') || request.url.includes('.css') || request.url.includes('.js')) {
