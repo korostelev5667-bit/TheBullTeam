@@ -29,7 +29,7 @@ html, body {
 }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family: 'Inter', sans-serif;
   background: var(--bg);
   color: var(--text);
   -webkit-text-size-adjust: 100%;
@@ -60,7 +60,7 @@ body {
 .container { padding: 16px; display: block; }
 
 .panel {
-  background: var(--panel);
+  background: var(--card-bg);
   border: 1px solid var(--divider);
   border-radius: var(--border-radius);
   overflow: clip;
@@ -93,7 +93,7 @@ body {
   border: 1px solid var(--divider);
   border-radius: 8px;
   padding: 10px;
-  background: #0f1626;
+  background: var(--card-bg);
   box-shadow: var(--shadow);
 }
 .table-card h3 { margin: 0; font-size: 16px; }
@@ -294,7 +294,7 @@ body {
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* Dish cards - новый стиль The Бык */
+/* Dish cards - стиль как на картинке */
 .dish-card {
   display: flex;
   align-items: flex-start;
@@ -304,6 +304,7 @@ body {
   margin-bottom: 12px;
   box-shadow: var(--shadow);
   transition: var(--transition);
+  position: relative;
 }
 
 .dish-card:hover {
@@ -387,6 +388,12 @@ body {
 
 .dish-note input::placeholder {
   color: var(--subtext);
+}
+
+/* Скрыть информацию о столе и количестве */
+.dish-card .table-info,
+.dish-card .quantity-info {
+  display: none !important;
 }
 
 /* Старые стили для совместимости */
@@ -931,15 +938,15 @@ body {
 .quantity-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 6px;
 }
 
 .quantity-btn {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
-  background: #1f2937;
+  background: var(--divider);
   color: var(--text);
   font-weight: bold;
   display: flex;
@@ -947,20 +954,28 @@ body {
   align-items: center;
   cursor: pointer;
   transition: var(--transition);
-  border: none;
-  font-size: 14px;
+  border: 1px solid var(--divider);
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .quantity-btn:hover {
   background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.quantity-btn:active {
+  transform: scale(0.95);
 }
 
 .quantity {
-  width: 24px;
+  min-width: 20px;
   text-align: center;
   font-weight: bold;
   color: var(--text);
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 /* Bottom Navigation */
@@ -2072,10 +2087,11 @@ body {
   background: rgba(245, 158, 11, 0.08);
 }
 
-/* Swipe to delete */
+/* Swipe to delete - улучшенная чувствительность */
 .dish-item-container {
   position: relative;
   overflow: hidden;
+  touch-action: pan-y;
 }
 
 .dish-delete-overlay {
@@ -2096,6 +2112,15 @@ body {
 
 .dish-item.swiping .dish-delete-overlay {
   transform: translateX(0);
+}
+
+/* Улучшенная чувствительность свайпа */
+.dish-item {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* Mobile responsive adjustments for todo items */

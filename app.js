@@ -99,7 +99,7 @@
 
   // Function to get current app version with timestamp
   function getAppVersion() {
-    const baseVersion = '0.9.0';
+    const baseVersion = '0.10.0';
     const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
     return `${baseVersion}.${timestamp}`;
   }
@@ -2521,7 +2521,6 @@
                  class="dish-image"
                  onerror="this.src='./images/placeholder-dish.svg'">
             <div class="dish-details">
-              <p class="dish-meta">Стол ${tableNumber} • Количество: ${order.quantity}</p>
               <p class="dish-rkeeper">R_keeper: ${order.rkeeper}</p>
               <div class="dish-actions">
                 <button class="dish-action-btn" onclick="showDishDetails('${order.id}')">Подробнее</button>
@@ -2607,8 +2606,8 @@
         currentX = e.touches[0].clientX;
         const deltaX = currentX - startX;
         
-        // Only allow swiping left (negative deltaX)
-        if (deltaX < 0) {
+        // Only allow swiping left (negative deltaX) and require minimum movement
+        if (deltaX < -20) { // Увеличили минимальное движение с 0 до -20px
           const translateX = Math.max(deltaX, -80);
           dishItem.style.transform = `translateX(${translateX}px)`;
         }
@@ -2621,7 +2620,7 @@
         const deltaX = currentX - startX;
         dishItem.style.transition = 'transform 0.3s ease';
         
-        if (deltaX < -40) {
+        if (deltaX < -60) { // Увеличили порог с -40 до -60px
           // Swipe threshold reached, ask to delete
           dishItem.style.transform = 'translateX(-80px)';
           dishItem.classList.add('swiping');

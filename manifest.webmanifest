@@ -1,7 +1,7 @@
 {
   "name": "BullTeam PWA",
   "short_name": "BullTeam",
-  "description": "PWA приложение для официантов: столы, заказы",
+  "description": "PWA приложение для официантов: столы, заказы v0.10.0",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
