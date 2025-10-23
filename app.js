@@ -36,16 +36,28 @@
     try { tableMode = localStorage.getItem(STORAGE_KEYS.tableMode) || 'todo'; } catch { tableMode = 'todo'; }
     try { tableNames = JSON.parse(localStorage.getItem(STORAGE_KEYS.tableNames) || '{}'); } catch { tableNames = {}; }
     
-    // Load auth state
+    // Load auth state - для демо-режима пропускаем аутентификацию
     try { 
       isAuthenticated = localStorage.getItem(STORAGE_KEYS.auth) === 'true'; 
       if (isAuthenticated) {
         currentUser = JSON.parse(localStorage.getItem(STORAGE_KEYS.user) || 'null');
         currentPage = 'tables'; // Go to main app if authenticated
+      } else {
+        // Демо-режим: автоматически входим как демо-пользователь
+        isAuthenticated = true;
+        currentUser = { name: 'Демо-пользователь', email: 'demo@bullteam.com' };
+        currentPage = 'tables';
       }
     } catch { 
-      isAuthenticated = false; 
-      currentUser = null;
+      isAuthenticated = true; // Демо-режим
+      currentUser = { name: 'Демо-пользователь', email: 'demo@bullteam.com' };
+      currentPage = 'tables';
+    }
+    
+    // Добавляем демо-столы если их нет
+    if (activeTables.length === 0) {
+      activeTables = [1, 2, 3, 4, 5, 6];
+      saveTables();
     }
   }
   function saveTableOrders() { localStorage.setItem(STORAGE_KEYS.tableOrders, JSON.stringify(tableOrders)); }
@@ -281,10 +293,11 @@
 
   // Page navigation
   function setPage(page) {
+    console.log('setPage called with:', page, 'isAuthenticated:', isAuthenticated);
     if (!isAuthenticated && page !== 'auth') {
       currentPage = 'auth';
     } else {
-    currentPage = page;
+      currentPage = page;
     }
     updateNavItems();
     render();
@@ -1948,10 +1961,12 @@
 
   function render() {
     const hash = location.hash || '#/';
+    console.log('render called, currentPage:', currentPage, 'isAuthenticated:', isAuthenticated, 'hash:', hash);
     root.innerHTML = '';
     
     // Check authentication
     if (!isAuthenticated) {
+      console.log('Not authenticated, showing auth page');
       root.appendChild(viewAuth());
       return;
     }
